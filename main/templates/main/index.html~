@@ -10,6 +10,7 @@
 {% if card_created %}
 	<script type="text/javascript">
 		var card_num = {{ card_num }};
+		alert('Your card has been activated. Your credit card number is ' + card_num);
 	</script>
 {% endif %}
 
