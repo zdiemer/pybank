@@ -43,29 +43,24 @@ class IndexView(View):
 
         context = {'savings_text': savings_text, 'checking_text': checking_text, 'credit_text': credit_text, 'credit_exists': credit_exists}
 
-        context={'savings_text': savings_text, 'checking_text': checking_text}
         return render(request, self.template_name, context)
 
     def post(self, request):
         if request.user.is_authenticated:
             pin = ''
             try:
-		print "trying to get pin"
                 pin = request.POST['pin']
-		print "got pin", pin
                 credit_acct = Account()
                 credit_acct.user = request.user
                 credit_acct.account_type = account_type.credit
                 credit_acct.card_pin = pin
+                credit_acct.card_activated = True
                 credit_acct.save()
-		print "saving"
 
                 context = {'card_num': credit_acct.card_num, 'card_created': True}
 
-                print "Saved credit card with pin", pin
                 return render(request, self.template_name, context)
             except:
-		print "error"
                 pin = ''
         else:
             username = request.POST['username']
