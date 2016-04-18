@@ -4,6 +4,7 @@ from django.views.generic import View
 from .forms import UserForm, UserLogin
 from django.views import generic
 from .models import Account
+from django.contrib.auth.models import User
 import locale
 import account_type
 
@@ -19,18 +20,20 @@ class IndexView(View):
             locale.setlocale(locale.LC_ALL, '')
             try:
                 user_account = Account.objects.get(user_id=request.user.id, account_type=account_type.savings)
-                savings_text = locale.currency(user_account.saving_balance, grouping=True)
+                #savings_text = locale.currency(user_account.balance, grouping=True)
+                savings_text = user_account.balance
             except:
                 savings_text = '$0'
 
             try:
                 user_account = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
-                checking_text = locale.currency(user_account.checking_balance, grouping=True)
+                checking_text = user_account.balance
+                #checking_text = locale.currency(user_account.balance, grouping=True)
             except:
                 checking_text = '$0'
 
-        context = {'savings_text': savings_text, 'checking_text': checking_text}
 
+        context={'savings_text': savings_text, 'checking_text': checking_text}
         return render(request, self.template_name, context)
 
     def post(self, request):
@@ -42,12 +45,18 @@ class IndexView(View):
             login(request,user)
             return redirect('main:index')
 
-        return render(request, self.template_name,)
+        return render(request, self.template_name,{"user":user})
 
 
-class DetailView(generic.DetailView):
-    model = Account
-    template_name = 'main/detail.html'
+class DetailView(View):
+    template_name = 'main/transfer.html'
+
+    def get(self, request, pk):
+        saving_account = Account.objects.get(user_id=request.user.id, account_type=account_type.savings)
+        checking_account = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
+
+        context = {'savings':saving_account , 'checking': checking_account}
+        return render(request, self.template_name,context)
 
 class UserFormView(View):
     form_class = UserForm
@@ -91,8 +100,54 @@ class UserFormView(View):
         return render(request, 'main/index.html', {'form':form})
 
 
-class TranferView(View):
-    template_name = 'main/transfer.html'
+class TransferView(View):
+    template_name = 'main/transfer_process.html'
 
-    def get(self, request):
+    def get(self, request, pk, id):
         return render(request, self.template_name)
+
+    def post(self, request,pk, id):
+        amount = request.POST['amount']
+        username = request.POST['username']
+        amount = int(amount)
+        #get current account
+        if id == '0':
+            saving_account = Account.objects.get(user_id=request.user.id, account_type=account_type.savings)
+            # do error checking...
+            saving_account.balance = saving_account.balance - amount
+            saving_account.save()
+        else:
+            checking_account = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
+            #do error checking...
+            checking_account.balance = checking_account.balance - amount
+            checking_account.save()
+
+        user = User.objects.get(username = username)
+        account = Account.objects.get(user = user, account_type=account_type.savings)
+        account.balance += amount
+        account.save()
+        return redirect('main:detail',pk)
+
+
+class TransferBetweenView(View):
+    template_name = 'main/transfer_between.html'
+
+    def get(self, request, pk, id):
+        return render(request, self.template_name)
+
+    def post(self, request, pk, id):
+        amount = request.POST['amount']
+        amount = int(amount)
+        saving_account = Account.objects.get(user_id=request.user.id, account_type=account_type.savings)
+        checking_account = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
+        if id == '0':
+            saving_account.balance = saving_account.balance - amount
+            checking_account.balance = checking_account.balance + amount
+        else:
+            checking_account.balance = checking_account.balance - amount
+            saving_account.balance = saving_account.balance + amount
+
+        saving_account.save()
+        checking_account.save()
+        return redirect('main:detail', pk)
+
