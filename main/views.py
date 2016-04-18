@@ -6,6 +6,7 @@ from django.views import generic
 from .models import Account
 import locale
 
+
 class IndexView(View):
     template_name = 'main/index.html'
     form_class = UserLogin
@@ -17,8 +18,11 @@ class IndexView(View):
             try:
                 user_account = Account.objects.get(user_id=request.user.id)
                 locale.setlocale(locale.LC_ALL, '')
-                savings_text = locale.currency(user_account.saving_balance, grouping=True)
-                checking_text = locale.currency(user_account.checking_balance, grouping=True)
+                #savings_text = locale.currency(user_account.saving_balance, grouping=True)
+                #checking_text = locale.currency(user_account.checking_balance, grouping=True)
+
+                savings_text = user_account.saving_balance
+                checking_text = user_account.checking_balance
             except:
                 savings_text = '$0'
                 checking_text = '$0'
@@ -33,11 +37,10 @@ class IndexView(View):
         user = authenticate(username=username, password=password)
 
         if user is not None:
-            if user.is_active:
-                login(request, user)
-                return render(request, 'main/index.html')
+            login(request,user)
+            return redirect('main:index')
 
-        return render(request, self.template_name, {'form':form})
+        return render(request, self.template_name,)
 
 
 class DetailView(generic.DetailView):
@@ -71,8 +74,14 @@ class UserFormView(View):
             user = authenticate(username = username, password = password)
 
             if user is not None:
-                if user.is_active:
-                    login(request, user)
+                    login(request,user)
                     return redirect('main:index')
 
         return render(request, 'main/index.html', {'form':form})
+
+
+class TranferView(View):
+    template_name = 'main/transfer.html'
+
+    def get(self, request):
+        return render(request, self.template_name)
