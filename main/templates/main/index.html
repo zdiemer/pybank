@@ -5,17 +5,18 @@
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
 
 <html>
-	<form role="form" action="" method="post" enctype="multipart/form-data"
+	<form role="form" action="" method="post" enctype="multipart/form-data">
+		{% csrf_token %}
 		<nav class="uk-navbar uk-margin-top uk-margin-left uk-margin-right">
 			<ul class="uk-navbar-nav">
 				{% if not request.user.is_authenticated %}
-				    <li><input class="uk-margin-small-top uk-margin-small-left" style="width: 100px;" type="text" placeholder="Username" id="nav_username"></li>
-				    <li><input class="uk-margin-small-top" style="width: 100px;" type="password" placeholder="Password" id="nav_password"></li>
-				    <li><a type="submit" class="uk-button" href="">Login</a></li>
-				    <li><a class="uk-text-primary" href="">No Account?</a></li>
+				    <li><input class="uk-margin-small-top uk-margin-small-left" style="width: 100px;" type="text" placeholder="Username" name='username' id="nav_username"></li>
+				    <li><input class="uk-margin-small-top" style="width: 100px;" type="password" placeholder="Password" name='password' id="nav_password"></li>
+				    <li><button type="submit" class="uk-button">Login</button></li>
+				    <li><a class="uk-text-primary" href="{% url 'main:register' %}">No Account?</a></li>
 				{% else %}
-				    <li>Username</li>
-				    <li><a class="uk-button" href="">Logout</a><li>
+				    <li class="uk-text-success uk-text-bold uk-margin-small-top uk-margin-small-left uk-margin-small-right">{{ request.user.username }}</li>
+				    <li><a class="uk-button" href="{% url 'main:logout' %}">Logout</a><li>
 				{% endif %}
 			</ul>
 			<div class="uk-navbar-flip">
@@ -42,7 +43,7 @@
 				</div>
 				<div class="uk-width-1-3">
 					<div class="uk-panel uk-panel-box">
-						<h2 class="uk-text-right uk-text-primary">Balance:</h2>
+						<h2 class="uk-text-right uk-text-primary">Balance: {{ savings_text }}</h2>
 					</div>
 				</div>
 			</div>
@@ -56,7 +57,7 @@
 				</div>
 				<div class="uk-width-1-3">
 					<div class="uk-panel uk-panel-box">
-						<h2 class="uk-text-right uk-text-primary">Balance:</h2>
+						<h2 class="uk-text-right uk-text-primary">Balance: {{ checking_text }}</h2>
 					</div>
 				</div>
 			</div>

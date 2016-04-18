@@ -56,7 +56,7 @@ ROOT_URLCONF = 'pybank.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'main/templates/main')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
