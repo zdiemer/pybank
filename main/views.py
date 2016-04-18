@@ -23,24 +23,12 @@ class IndexView(View):
             locale.setlocale(locale.LC_ALL, '')
             try:
                 user_account = Account.objects.get(user_id=request.user.id, account_type=account_type.savings)
-<<<<<<< HEAD
-                #savings_text = locale.currency(user_account.balance, grouping=True)
-                savings_text = user_account.balance
-=======
                 savings_text = locale.currency(user_account.balance, grouping=True)
->>>>>>> origin/master
             except:
                 savings_text = '$0'
 
             try:
                 user_account = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
-<<<<<<< HEAD
-                checking_text = user_account.balance
-                #checking_text = locale.currency(user_account.balance, grouping=True)
-            except:
-                checking_text = '$0'
-
-=======
                 checking_text = locale.currency(user_account.balance, grouping=True)
             except:
                 checking_text = '$0'
@@ -54,7 +42,6 @@ class IndexView(View):
                 credit_exists = False
 
         context = {'savings_text': savings_text, 'checking_text': checking_text, 'credit_text': credit_text, 'credit_exists': credit_exists}
->>>>>>> origin/master
 
         context={'savings_text': savings_text, 'checking_text': checking_text}
         return render(request, self.template_name, context)
