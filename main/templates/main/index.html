@@ -31,10 +31,17 @@
 			</ul>
 			<div class="uk-navbar-flip">
 				<ul class="uk-navbar-nav">
+<<<<<<< HEAD
                     			{% if request.user.is_authenticated %}
 						<li><a href="{% url 'main:transfer' %}">Transfer Money</a></li>
 						<li><a href="">Settings</a></li>
                     			{% endif %}
+=======
+                    {% if request.user.is_authenticated %}
+					<li><a href="{% url 'main:detail' request.user.id  %}">Transfer Money</a></li>
+					<li><a href="">Settings</a></li>
+                    {% endif %}
+>>>>>>> d48abac509c3ad377054a507fdc984011dc392b2
 				</ul>
 			</div>
 		</nav>
