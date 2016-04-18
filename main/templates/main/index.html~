@@ -25,16 +25,35 @@
 				    <li><button type="submit" class="uk-button">Login</button></li>
 				    <li><a class="uk-text-primary" href="{% url 'main:register' %}">No Account?</a></li>
 				{% else %}
-				    <li class="uk-text-success uk-text-bold uk-margin-small-top uk-margin-small-left uk-margin-small-right">{{ request.user.username }}</li>
+				    <li class="uk-text-success uk-text-bold uk-margin-small-top uk-margin-small-left uk-margin-small-right" style="padding-top: 4px;">{{ request.user.username }}</li>
 				    <li><a class="uk-button" href="{% url 'main:logout' %}">Logout</a><li>
 				{% endif %}
 			</ul>
 			<div class="uk-navbar-flip">
 				<ul class="uk-navbar-nav">
+<<<<<<< HEAD
+<<<<<<< HEAD
+                    {% if request.user.is_authenticated %}
+					<li><a href="{% url 'main:detail' request.user.id  %}">Transfer Money</a></li>
+					<li><a href="">Settings</a></li>
+                    {% endif %}
+=======
+=======
+>>>>>>> ab290c2ad072ea137713fbe73f171b8d6e2800c9
                     			{% if request.user.is_authenticated %}
 						<li><a href="{% url 'main:transfer' %}">Transfer Money</a></li>
 						<li><a href="">Settings</a></li>
                     			{% endif %}
+<<<<<<< HEAD
+>>>>>>> origin/master
+=======
+=======
+                    {% if request.user.is_authenticated %}
+					<li><a href="{% url 'main:detail' request.user.id  %}">Transfer Money</a></li>
+					<li><a href="">Settings</a></li>
+                    {% endif %}
+>>>>>>> d48abac509c3ad377054a507fdc984011dc392b2
+>>>>>>> ab290c2ad072ea137713fbe73f171b8d6e2800c9
 				</ul>
 			</div>
 		</nav>
