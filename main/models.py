@@ -10,8 +10,8 @@ class Account(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     card_num = models.CharField(max_length=16, default=cardNum)
-    checking_balance = models.IntegerField(default=0)
-    saving_balance = models.IntegerField(default=0)
+    balance = models.IntegerField(default=0)
+    account_type = models.IntegerField()
     card_activated = models.BooleanField(default=False)
     card_pin = models.CharField(max_length=4)
 

@@ -5,6 +5,7 @@ from .forms import UserForm, UserLogin
 from django.views import generic
 from .models import Account
 import locale
+import account_type
 
 
 class IndexView(View):
@@ -15,16 +16,17 @@ class IndexView(View):
 
     def get(self, request):
         if request.user.is_authenticated:
+            locale.setlocale(locale.LC_ALL, '')
             try:
-                user_account = Account.objects.get(user_id=request.user.id)
-                locale.setlocale(locale.LC_ALL, '')
-                #savings_text = locale.currency(user_account.saving_balance, grouping=True)
-                #checking_text = locale.currency(user_account.checking_balance, grouping=True)
-
-                savings_text = user_account.saving_balance
-                checking_text = user_account.checking_balance
+                user_account = Account.objects.get(user_id=request.user.id, account_type=account_type.savings)
+                savings_text = locale.currency(user_account.saving_balance, grouping=True)
             except:
                 savings_text = '$0'
+
+            try:
+                user_account = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
+                checking_text = locale.currency(user_account.checking_balance, grouping=True)
+            except:
                 checking_text = '$0'
 
         context = {'savings_text': savings_text, 'checking_text': checking_text}
@@ -67,8 +69,17 @@ class UserFormView(View):
             password = form.cleaned_data['password']
             user.set_password(password)
             user.save()
+
+            # create savings account
             account = Account()
             account.user = user
+            account.account_type = account_type.savings
+            account.save()
+
+            # create savings account
+            account = Account()
+            account.user = user
+            account.account_type = account_type.checking
             account.save()
 
             user = authenticate(username = username, password = password)
