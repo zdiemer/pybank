@@ -13,11 +13,6 @@ class IndexView(View):
     template_name = 'main/index.html'
     form_class = UserLogin
 
-    savings_text = '$0'
-    checking_text = '$0'
-    credit_text = '$0'
-    credit_exists = False
-
     def fetch_user_context(self, user):
         if user.is_authenticated:
             locale.setlocale(locale.LC_ALL, '')
@@ -30,18 +25,24 @@ class IndexView(View):
             try:
                 user_account = Account.objects.get(user_id=user.id, account_type=account_type.checking)
                 checking_text = locale.currency(user_account.balance, grouping=True)
+                debit_activated = user_account.card_activated
+                debit_pin = user_account.card_pin
             except:
                 checking_text = '$0'
+                debit_activated = False
+                debit_pin = ''
 
             try:
                 user_account = Account.objects.get(user_id=user.id, account_type=account_type.credit)
                 credit_text = locale.currency(user_account.balance, grouping=True)
                 credit_exists = True
+                credit_pin = user_account.card_pin
             except:
                 credit_text = '$0'
                 credit_exists = False
+                credit_pin = ''
 
-        context = {'savings_text': savings_text, 'checking_text': checking_text, 'credit_text': credit_text, 'credit_exists': credit_exists}
+        context = {'savings_text': savings_text, 'checking_text': checking_text, 'credit_text': credit_text, 'credit_exists': credit_exists, 'debit_activated': debit_activated, 'credit_pin': credit_pin, 'debit_pin': debit_pin}
         return context
 
     def get(self, request):
@@ -112,6 +113,37 @@ class IndexView(View):
                 return render(request, self.template_name, context)
             except:
                 pass
+
+            try:
+                context = {}
+
+                current_user = request.user
+                current_user.email = request.POST['email']
+
+                debit_acct = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
+                debit_acct.card_pin = str(request.POST['debit_pin'])
+
+                if 'activate_debit' in request.POST:
+                    debit_acct.card_num = debit_acct.generate_card()
+                    debit_acct.card_activated = True
+
+                debit_acct.save()
+
+                if 'credit_pin' in request.POST:
+                    credit_acct = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
+                    credit_acct.card_pin = str(request.POST['credit_pin'])
+                    credit_acct.save()
+
+                if request.POST['password'] != '':
+                    current_user.set_password(request.POST['password'])
+
+                current_user.save()
+
+                context.update(self.fetch_user_context(request.user))
+
+                return render(request, self.template_name, context)
+            except:
+                raise
         else:
             username = request.POST['username']
             password = request.POST['password']

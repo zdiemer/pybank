@@ -47,7 +47,7 @@
 					{% if not request.user.is_authenticated %}
 					    <li><input class="uk-margin-small-top uk-margin-small-left" style="width: 100px;" type="text" placeholder="Username" name='username' id="nav_username"></li>
 					    <li><input class="uk-margin-small-top" style="width: 100px;" type="password" placeholder="Password" name='password' id="nav_password"></li>
-					    <li><button type="submit" class="uk-button">Login</button></li>
+					    <li><button type="submit" class="uk-button" style="padding-top: 4px;">Login</button></li>
 					    <li><a class="uk-text-primary" href="{% url 'main:register' %}">No Account?</a></li>
 					{% else %}
 					    <li class="uk-text-success uk-text-bold uk-margin-small-top uk-margin-small-left uk-margin-small-right" style="padding-top: 4px;">{{ request.user.username }}</li>
@@ -58,7 +58,7 @@
 					<ul class="uk-navbar-nav">
 		            			{% if request.user.is_authenticated %}
 						<li><a href="{% url 'main:detail' request.user.id  %}">Transfer Money</a></li>
-						<li><a href="">Settings</a></li>
+						<li><a href='#settings' data-uk-modal>Settings</a></li>
 		            			{% endif %}
 					</ul>
 				</div>
@@ -148,10 +148,45 @@
 				</form>
 			</div>
 		</div>
-		<div id="pay-balance" class="uk-modal">
+		<div id="settings" class="uk-modal">
 			<div class="uk-modal-dialog">
 				<a class="uk-modal-close uk-close"></a>
 				<form class="uk-form" role="form" action="" method="post" enctype="multipart/form-data">
+					{% csrf_token %}
+					<div class="uk-form-row">
+						<span class="uk-form-label">Change Email</span>
+						<input type="text" placeholder="example@email.com" name='email' value='{{ request.user.email }}'></input>
+					</div>
+					<div class="uk-form-row">
+						<span class="uk-form-label">Change Debit PIN</span>
+						<input type="text" placeholder="1234" name='debit_pin' value='{{ debit_pin }}'></input>
+					</div>
+					{% if not debit_activated %}
+						<div class="uk-form-row">
+							<span class="uk-form-label">Activate Debit Card</span>
+							<input type="checkbox" name='activate_debit'></input>
+						</div>
+					{% endif %}
+					{% if credit_exists %}
+						<div class="uk-form-row">
+							<span class="uk-form-label">Change Credit PIN</span>
+							<input type="text" placeholder="1234" name='credit_pin' value='{{ credit_pin }}'></input>
+						</div>
+					{% endif %}
+					<div class="uk-form-row">
+						<span class="uk-form-label">Change Password</span>
+						<input type="password" name='password'></input>
+					</div>
+					<div class="uk-form-row">
+						<button class="uk-button" type="submit">Submit</button>
+					</div>
+				</form>
+			</div>
+		</div>
+		<div id="pay-balance" class="uk-modal">
+			<div class="uk-modal-dialog">
+				<a class="uk-modal-close uk-close"></a>
+				<form class="uk-form uk-form-horizontal" role="form" action="" method="post" enctype="multipart/form-data">
 					{% csrf_token %}
 					<div class="uk-form-row"><input type="text" placeholder="Amount" name='amount'></div>
 					<div class="uk-form-row">
