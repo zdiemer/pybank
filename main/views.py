@@ -9,44 +9,44 @@ import locale
 import account_type
 
 
+def fetch_user_context(user):
+    if user.is_authenticated:
+        locale.setlocale(locale.LC_ALL, '')
+        try:
+            user_account = Account.objects.get(user_id=user.id, account_type=account_type.savings)
+            savings_text = locale.currency(user_account.balance, grouping=True)
+        except:
+            savings_text = '$0'
+
+        try:
+            user_account = Account.objects.get(user_id=user.id, account_type=account_type.checking)
+            checking_text = locale.currency(user_account.balance, grouping=True)
+            debit_activated = user_account.card_activated
+            debit_pin = user_account.card_pin
+        except:
+            checking_text = '$0'
+            debit_activated = False
+            debit_pin = ''
+
+        try:
+            user_account = Account.objects.get(user_id=user.id, account_type=account_type.credit)
+            credit_text = locale.currency(user_account.balance, grouping=True)
+            credit_exists = True
+            credit_pin = user_account.card_pin
+        except:
+            credit_text = '$0'
+            credit_exists = False
+            credit_pin = ''
+
+    context = {'savings_text': savings_text, 'checking_text': checking_text, 'credit_text': credit_text, 'credit_exists': credit_exists, 'debit_activated': debit_activated, 'credit_pin': credit_pin, 'debit_pin': debit_pin}
+    return context
+
 class IndexView(View):
     template_name = 'main/index.html'
     form_class = UserLogin
 
-    def fetch_user_context(self, user):
-        if user.is_authenticated:
-            locale.setlocale(locale.LC_ALL, '')
-            try:
-                user_account = Account.objects.get(user_id=user.id, account_type=account_type.savings)
-                savings_text = locale.currency(user_account.balance, grouping=True)
-            except:
-                savings_text = '$0'
-
-            try:
-                user_account = Account.objects.get(user_id=user.id, account_type=account_type.checking)
-                checking_text = locale.currency(user_account.balance, grouping=True)
-                debit_activated = user_account.card_activated
-                debit_pin = user_account.card_pin
-            except:
-                checking_text = '$0'
-                debit_activated = False
-                debit_pin = ''
-
-            try:
-                user_account = Account.objects.get(user_id=user.id, account_type=account_type.credit)
-                credit_text = locale.currency(user_account.balance, grouping=True)
-                credit_exists = True
-                credit_pin = user_account.card_pin
-            except:
-                credit_text = '$0'
-                credit_exists = False
-                credit_pin = ''
-
-        context = {'savings_text': savings_text, 'checking_text': checking_text, 'credit_text': credit_text, 'credit_exists': credit_exists, 'debit_activated': debit_activated, 'credit_pin': credit_pin, 'debit_pin': debit_pin}
-        return context
-
     def get(self, request):
-        context = self.fetch_user_context(request.user)
+        context = fetch_user_context(request.user)
 
         return render(request, self.template_name, context)
 
@@ -54,7 +54,6 @@ class IndexView(View):
         user = None
 
         if request.user.is_authenticated():
-            print request.user
             try:
                 pin = request.POST['pin']
                 credit_acct = Account()
@@ -65,10 +64,11 @@ class IndexView(View):
                 credit_acct.card_num = credit_acct.generate_card()
                 credit_acct.save()
 
-                context = self.fetch_user_context(request.user)
+                context = fetch_user_context(request.user)
 
                 context['card_num'] = credit_acct.card_num
                 context['card_created'] = True
+                context['card_type'] = 'credit'
 
                 return render(request, self.template_name, context)
             except:
@@ -108,7 +108,7 @@ class IndexView(View):
                 context['payment_result'] = payment_result
                 context['overpayment'] = overpayment
                 context['new_balance'] = new_balance
-                context.update(self.fetch_user_context(request.user))
+                context.update(fetch_user_context(request.user))
 
                 return render(request, self.template_name, context)
             except:
@@ -126,6 +126,9 @@ class IndexView(View):
                 if 'activate_debit' in request.POST:
                     debit_acct.card_num = debit_acct.generate_card()
                     debit_acct.card_activated = True
+		    context['card_created'] = True
+                    context['card_type'] = 'debit'
+                    context['card_num'] = debit_acct.card_num
 
                 debit_acct.save()
 
@@ -139,11 +142,42 @@ class IndexView(View):
 
                 current_user.save()
 
-                context.update(self.fetch_user_context(request.user))
+                context.update(fetch_user_context(request.user))
 
                 return render(request, self.template_name, context)
             except:
-                raise
+                pass
+
+            try:
+                spend_amount = int(request.POST['spend_amount'])
+		card_number = request.POST['card_number']
+	        card_pinumber = request.POST['card_pin']
+
+		acct = Account.objects.get(user_id=request.user.id, card_num=card_number, card_pin=card_pinumber)
+		
+		if acct.account_type == account_type.checking:
+		    acct.balance -= spend_amount
+		elif acct.account_type == account_type.credit:
+		    acct.balance += spend_amount
+
+		acct.save()
+
+		return render(request, self.template_name, fetch_user_context(request.user))
+	    except:
+		pass
+
+	    try:
+		deposit_amount = int(request.POST['deposit_amount'])
+		deposit_account = request.POST['deposit_account']
+
+		acct = Account.objects.get(user_id=request.user.id, account_type=deposit_account)
+		acct.balance += deposit_amount
+		acct.save()
+
+		return render(request, self.template_name, fetch_user_context(request.user))
+	    except:
+		pass
+
         else:
             username = request.POST['username']
             password = request.POST['password']
@@ -160,10 +194,11 @@ class DetailView(View):
     template_name = 'main/transfer.html'
 
     def get(self, request, pk):
-        saving_account = Account.objects.get(user_id=request.user.id, account_type=account_type.savings)
-        checking_account = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
+        context = request.session.pop('context', False)
 
-        context = {'savings':saving_account , 'checking': checking_account}
+	if not context:
+            context = fetch_user_context(request.user)
+
         return render(request, self.template_name,context)
 
 class UserFormView(View):
@@ -213,50 +248,91 @@ class TransferView(View):
     template_name = 'main/transfer_process.html'
 
     def get(self, request, pk, id):
-        return render(request, self.template_name)
+        context = request.session.pop('context', False)
+
+	if not context:
+            context = fetch_user_context(request.user)
+
+        return render(request, self.template_name, context)
 
     def post(self, request,pk, id):
+        context = fetch_user_context(request.user)
+        context['transfer_fail'] = False
+
         amount = request.POST['amount']
         username = request.POST['username']
         amount = int(amount)
-        #get current account
+
         if id == '0':
             saving_account = Account.objects.get(user_id=request.user.id, account_type=account_type.savings)
-            # do error checking...
-            saving_account.balance = saving_account.balance - amount
-            saving_account.save()
+
+            if amount > saving_account.balance:
+                context['transfer_fail'] = True
+	    else:
+                saving_account.balance = saving_account.balance - amount
+                saving_account.save()
         else:
             checking_account = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
-            #do error checking...
-            checking_account.balance = checking_account.balance - amount
-            checking_account.save()
+            
+	    if amount > checking_account.balance:
+		context['transfer_fail'] = True
+	    else:
+                checking_account.balance = checking_account.balance - amount
+                checking_account.save()
 
-        user = User.objects.get(username = username)
-        account = Account.objects.get(user = user, account_type=account_type.savings)
-        account.balance += amount
-        account.save()
-        return redirect('main:detail',pk)
+        if not context['transfer_fail']:
+            user = User.objects.get(username = username)
+            account = Account.objects.get(user = user, account_type=account_type.checking)
+            account.balance += amount
+            account.save()
+
+        request.session['context'] = context
+
+        return redirect('main:detail', pk)
 
 
 class TransferBetweenView(View):
     template_name = 'main/transfer_between.html'
 
     def get(self, request, pk, id):
-        return render(request, self.template_name)
+        context = request.session.pop('context', False)
+
+	if not context:
+            context = fetch_user_context(request.user)
+
+	if id == '0':
+            context['transfer_type'] = "Savings"
+	else:
+	    context['transfer_type'] = "Checking"
+
+        return render(request, self.template_name, context)
 
     def post(self, request, pk, id):
+        context = fetch_user_context(request.user)
+
         amount = request.POST['amount']
         amount = int(amount)
+
         saving_account = Account.objects.get(user_id=request.user.id, account_type=account_type.savings)
         checking_account = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
+
         if id == '0':
-            saving_account.balance = saving_account.balance - amount
-            checking_account.balance = checking_account.balance + amount
+	    if amount > saving_account.balance:
+	        context['transfer_fail'] = True
+	    else:
+                saving_account.balance = saving_account.balance - amount
+                checking_account.balance = checking_account.balance + amount
         else:
-            checking_account.balance = checking_account.balance - amount
-            saving_account.balance = saving_account.balance + amount
+	    if amount > checking_account.balance:
+	        context['transfer_fail'] = True
+	    else:
+                checking_account.balance = checking_account.balance - amount
+                saving_account.balance = saving_account.balance + amount
 
         saving_account.save()
         checking_account.save()
+
+        request.session['context'] = context
+
         return redirect('main:detail', pk)
 

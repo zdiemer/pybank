@@ -10,7 +10,8 @@
 {% if card_created %}
 	<script type="text/javascript">
 		var card_num = {{ card_num }};
-		UIkit.modal.alert('Your card has been activated. Your credit card number is "' + card_num + '"');
+		var card_type = {{ card_type }};
+		alert('Your card has been activated. Your ' + card_type + ' card number is "' + card_num + '"');
 	</script>
 {% endif %}
 
@@ -52,6 +53,9 @@
 					{% else %}
 					    <li class="uk-text-success uk-text-bold uk-margin-small-top uk-margin-small-left uk-margin-small-right" style="padding-top: 4px;">{{ request.user.username }}</li>
 					    <li><a class="uk-button" href="{% url 'main:logout' %}">Logout</a><li>
+					    <li><a class="uk-button" href="{% url 'main:index' %}">Home</a><li>
+					    <li><a class="uk-button" href="#spend-money" data-uk-modal>Spend Money</a><li>
+					    <li><a class="uk-button" href="#deposit-money" data-uk-modal>Deposit Money</a><li>
 					{% endif %}
 				</ul>
 				<div class="uk-navbar-flip">
@@ -157,12 +161,11 @@
 						<span class="uk-form-label">Change Email</span>
 						<input type="text" placeholder="example@email.com" name='email' value='{{ request.user.email }}'></input>
 					</div>
-                                        {% if debit_activated %}
 					<div class="uk-form-row">
 						<span class="uk-form-label">Change Debit PIN</span>
 						<input type="text" placeholder="1234" name='debit_pin' value='{{ debit_pin }}'></input>
 					</div>
-					{% else %}
+					{% if not debit_activated %}
 						<div class="uk-form-row">
 							<span class="uk-form-label">Activate Debit Card</span>
 							<input type="checkbox" name='activate_debit'></input>
@@ -192,6 +195,34 @@
 					<div class="uk-form-row"><input type="text" placeholder="Amount" name='amount'></div>
 					<div class="uk-form-row">
 						<select name='account'>
+							<option value="0">Savings</option>
+							<option value="1">Checking</option>
+						</select>
+					</div>
+					<div class="uk-form-row"><button class="uk-button" type="submit">Submit</button></div>
+				</form>
+			</div>
+		</div>
+		<div id="spend-money" class="uk-modal">
+			<div class="uk-modal-dialog">
+				<a class="uk-modal-close uk-close"></a>
+				<form class="uk-form uk-form-horizontal" role="form" action="" method="post" enctype="multipart/form-data">
+					{% csrf_token %}
+					<div class="uk-form-row"><input type="text" placeholder="$1000" name='spend_amount'></div>
+					<div class="uk-form-row"><input type="text" placeholder="1234567890123456" name='card_number'></div>
+					<div class="uk-form-row"><input type="text" placeholder="1234" name='card_pin'></div>
+					<div class="uk-form-row"><button class="uk-button" type="submit">Submit</button></div>
+				</form>
+			</div>
+		</div>
+		<div id="deposit-money" class="uk-modal">
+			<div class="uk-modal-dialog">
+				<a class="uk-modal-close uk-close"></a>
+				<form class="uk-form uk-form-horizontal" role="form" action="" method="post" enctype="multipart/form-data">
+					{% csrf_token %}
+					<div class="uk-form-row"><input type="text" placeholder="$1000" name='deposit_amount'></div>
+					<div class="uk-form-row">
+						<select name='deposit_account'>
 							<option value="0">Savings</option>
 							<option value="1">Checking</option>
 						</select>
