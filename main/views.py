@@ -18,23 +18,23 @@ class IndexView(View):
     credit_text = '$0'
     credit_exists = False
 
-    def get(self, request):
-        if request.user.is_authenticated:
+    def fetch_user_context(self, user):
+        if user.is_authenticated:
             locale.setlocale(locale.LC_ALL, '')
             try:
-                user_account = Account.objects.get(user_id=request.user.id, account_type=account_type.savings)
+                user_account = Account.objects.get(user_id=user.id, account_type=account_type.savings)
                 savings_text = locale.currency(user_account.balance, grouping=True)
             except:
                 savings_text = '$0'
 
             try:
-                user_account = Account.objects.get(user_id=request.user.id, account_type=account_type.checking)
+                user_account = Account.objects.get(user_id=user.id, account_type=account_type.checking)
                 checking_text = locale.currency(user_account.balance, grouping=True)
             except:
                 checking_text = '$0'
 
             try:
-                user_account = Account.objects.get(user_id=request.user.id, account_type=account_type.credit)
+                user_account = Account.objects.get(user_id=user.id, account_type=account_type.credit)
                 credit_text = locale.currency(user_account.balance, grouping=True)
                 credit_exists = True
             except:
@@ -42,12 +42,18 @@ class IndexView(View):
                 credit_exists = False
 
         context = {'savings_text': savings_text, 'checking_text': checking_text, 'credit_text': credit_text, 'credit_exists': credit_exists}
+        return context
+
+    def get(self, request):
+        context = self.fetch_user_context(request.user)
 
         return render(request, self.template_name, context)
 
     def post(self, request):
-        if request.user.is_authenticated:
-            pin = ''
+        user = None
+
+        if request.user.is_authenticated():
+            print request.user
             try:
                 pin = request.POST['pin']
                 credit_acct = Account()
@@ -55,13 +61,57 @@ class IndexView(View):
                 credit_acct.account_type = account_type.credit
                 credit_acct.card_pin = pin
                 credit_acct.card_activated = True
+                credit_acct.card_num = credit_acct.generate_card()
                 credit_acct.save()
 
-                context = {'card_num': credit_acct.card_num, 'card_created': True}
+                context = self.fetch_user_context(request.user)
+
+                context['card_num'] = credit_acct.card_num
+                context['card_created'] = True
 
                 return render(request, self.template_name, context)
             except:
-                pin = ''
+                pass
+
+            try:
+                payment_result = True
+                overpayment = False
+                new_balance = ''
+
+                amount = int(request.POST['amount'])
+                account = request.POST['account']
+
+                fetched_acct = Account.objects.get(user_id=request.user.id, account_type=account)
+                credit_acct = Account.objects.get(user_id=request.user.id, account_type=account_type.credit)
+
+                current_balance = fetched_acct.balance
+
+                context = {}
+                context['paying_card'] = True
+
+                if current_balance < amount:
+                    payment_result = False
+                elif amount > credit_acct.balance:
+                    payment_result = False
+                    overpayment = True
+                else:
+                    locale.setlocale(locale.LC_ALL, '')
+                    fetched_acct.balance = current_balance - amount
+                    fetched_acct.save()
+
+                    new_balance = locale.currency(credit_acct.balance - amount, grouping=True)
+
+                    credit_acct.balance = credit_acct.balance - amount
+                    credit_acct.save()
+
+                context['payment_result'] = payment_result
+                context['overpayment'] = overpayment
+                context['new_balance'] = new_balance
+                context.update(self.fetch_user_context(request.user))
+
+                return render(request, self.template_name, context)
+            except:
+                pass
         else:
             username = request.POST['username']
             password = request.POST['password']
@@ -71,7 +121,7 @@ class IndexView(View):
                 login(request,user)
                 return redirect('main:index')
 
-        return render(request, self.template_name,{"user":user})
+        return render(request, self.template_name, {"user":user})
 
 
 class DetailView(View):
@@ -114,6 +164,7 @@ class UserFormView(View):
             # create savings account
             checking_acct = Account()
             checking_acct.user = user
+            checking_acct.card_num = checking_acct.generate_card()
             checking_acct.account_type = account_type.checking
             checking_acct.save()
 

@@ -4,12 +4,8 @@ from django.db import models
 import random
 
 class Account(models.Model):
-    cardNum = ''
-    for i in range(16):
-        cardNum += str(random.randint(0, 9))
-
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    card_num = models.CharField(max_length=16, default=cardNum)
+    card_num = models.CharField(max_length=16)
     balance = models.IntegerField(default=0)
     account_type = models.IntegerField()
     card_activated = models.BooleanField(default=False)
@@ -17,3 +13,10 @@ class Account(models.Model):
 
     def __str__(self):
         return self.card_num
+
+    def generate_card(self):
+        cardNum = ''
+        for i in range(16):
+            cardNum += str(random.randint(0, 9))
+
+        return cardNum
